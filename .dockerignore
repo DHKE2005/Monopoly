@@ -1,0 +1,17 @@
+# 排除不需要的配置文件
+railway-apache.conf
+
+# Git 文件
+.git
+.gitignore
+
+# IDE 文件
+.vscode
+.idea
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 文档
+README.md

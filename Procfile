@@ -1,1 +1,1 @@
-web: /usr/local/bin/start-apache.sh
+web: /usr/local/bin/docker-entrypoint.sh

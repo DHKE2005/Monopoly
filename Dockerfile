@@ -23,19 +23,44 @@ RUN composer install --no-dev --optimize-autoloader
 # 启用 Apache rewrite 模块
 RUN a2enmod rewrite
 
-# 创建启动脚本来处理动态端口
-RUN printf '#!/bin/bash\n\
-set -e\n\
-PORT=${PORT:-8080}\n\
-echo "Configuring Apache to listen on port $PORT"\n\
-echo "Listen $PORT" > /etc/apache2/ports.conf\n\
-sed -i "s/<VirtualHost \\*:80>/<VirtualHost *:$PORT>/g" /etc/apache2/sites-available/000-default.conf\n\
-echo "Starting Apache..."\n\
-exec apache2-foreground\n' > /usr/local/bin/start-apache.sh
+# 创建更强大的启动脚本
+RUN cat > /usr/local/bin/docker-entrypoint.sh << 'EOF'
+#!/bin/bash
+set -e
 
-RUN chmod +x /usr/local/bin/start-apache.sh
+# 获取端口（Railway 提供，默认 8080）
+PORT=${PORT:-8080}
+
+echo "=========================================="
+echo "Starting Apache Configuration"
+echo "PORT environment variable: $PORT"
+echo "=========================================="
+
+# 配置 ports.conf
+echo "Listen $PORT" > /etc/apache2/ports.conf
+echo "✓ Updated /etc/apache2/ports.conf"
+
+# 配置 000-default.conf
+sed -i "s/<VirtualHost \*:[0-9]*>/<VirtualHost *:$PORT>/g" /etc/apache2/sites-available/000-default.conf
+echo "✓ Updated /etc/apache2/sites-available/000-default.conf"
+
+# 显示配置内容（用于调试）
+echo "=========================================="
+echo "ports.conf content:"
+cat /etc/apache2/ports.conf
+echo "=========================================="
+echo "000-default.conf VirtualHost line:"
+grep "VirtualHost" /etc/apache2/sites-available/000-default.conf
+echo "=========================================="
+
+# 启动 Apache
+echo "Starting Apache on port $PORT..."
+exec apache2-foreground
+EOF
+
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 8080
 
-# 使用启动脚本
-CMD ["/usr/local/bin/start-apache.sh"]
+# 使用新的启动脚本
+CMD ["/usr/local/bin/docker-entrypoint.sh"]
