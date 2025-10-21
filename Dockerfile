@@ -1,36 +1,29 @@
 FROM php:8.1-apache
 
-# 安装必要的扩展
-RUN apt-get update && apt-get install -y \
-    libzip-dev \
-    unzip \
-    && docker-php-ext-install pdo pdo_mysql \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# 安装扩展
+RUN docker-php-ext-install pdo pdo_mysql
 
-# 复制 Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# 设置工作目录
+# 复制文件
 WORKDIR /var/www/html
-
-# 复制项目文件
 COPY . .
 
-# 安装 PHP 依赖
-RUN composer install --no-dev --optimize-autoloader || true
-
-# 启用 Apache rewrite 模块
+# 启用 rewrite
 RUN a2enmod rewrite
 
-# 设置启动脚本权限
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh || chmod +x ./docker-entrypoint.sh
+# 创建简单的启动脚本
+RUN printf '#!/bin/sh\n\
+PORT=${PORT:-8080}\n\
+echo "Listen $PORT" > /etc/apache2/ports.conf\n\
+echo "<VirtualHost *:$PORT>" > /etc/apache2/sites-available/000-default.conf\n\
+echo "    DocumentRoot /var/www/html" >> /etc/apache2/sites-available/000-default.conf\n\
+echo "    <Directory /var/www/html>" >> /etc/apache2/sites-available/000-default.conf\n\
+echo "        AllowOverride All" >> /etc/apache2/sites-available/000-default.conf\n\
+echo "        Require all granted" >> /etc/apache2/sites-available/000-default.conf\n\
+echo "    </Directory>" >> /etc/apache2/sites-available/000-default.conf\n\
+echo "</VirtualHost>" >> /etc/apache2/sites-available/000-default.conf\n\
+exec apache2-foreground' > /usr/local/bin/start.sh \
+&& chmod +x /usr/local/bin/start.sh
 
-# 设置默认端口环境变量
-ENV PORT=8080
+EXPOSE 8080
 
-# 暴露端口
-EXPOSE ${PORT}
-
-# 使用启动脚本
-CMD ["bash", "-c", "chmod +x ./docker-entrypoint.sh && ./docker-entrypoint.sh"]
+CMD ["/usr/local/bin/start.sh"]

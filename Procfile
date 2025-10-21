@@ -1,1 +1,1 @@
-web: bash docker-entrypoint.sh
+web: /usr/local/bin/start.sh
