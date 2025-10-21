@@ -45,6 +45,8 @@ if ($isProduction) {
 
 // 创建数据库连接
 function getDBConnection() {
+    // 使函数内可访问顶层的环境判断变量
+    global $isProduction;
     try {
         $dsn = "mysql:host=" . DB_HOST;
         

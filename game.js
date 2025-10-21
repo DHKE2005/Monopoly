@@ -4,7 +4,17 @@ console.log('🎲 大富翁游戏脚本加载中...');
 // ========================================
 // 全局变量和配置
 // ========================================
-const API_URL = 'api.php';
+// 动态设置API URL，支持Railway部署
+const API_URL = (() => {
+    // 如果是Railway部署，使用绝对路径
+    if (window.location.hostname.includes('railway') || window.location.hostname.includes('up.railway.app')) {
+        return window.location.origin + '/api.php';
+    }
+    // 本地开发使用相对路径
+    return 'api.php';
+})();
+
+console.log('🌐 API URL:', API_URL);
 let gameState = {
     mode: 'single',
     roomCode: null,
@@ -299,7 +309,8 @@ async function createRoom() {
         showScreen('waitingRoom');
         startWaitingRoomUpdates();
     } catch (error) {
-        await showAlertDialog('错误', '创建房间失败，请检查网络连接');
+        console.error('❌ 创建房间网络错误:', error);
+        await showAlertDialog('错误', `创建房间失败，请检查网络连接\n\n错误详情: ${error.message}\nAPI地址: ${API_URL}`);
     }
 }
 
@@ -381,7 +392,8 @@ async function joinRoomByCode(roomCode) {
         showScreen('waitingRoom');
         startWaitingRoomUpdates();
     } catch (error) {
-        await showAlertDialog('错误', '加入房间失败，请检查网络连接');
+        console.error('❌ 加入房间网络错误:', error);
+        await showAlertDialog('错误', `加入房间失败，请检查网络连接\n\n错误详情: ${error.message}\nAPI地址: ${API_URL}`);
     }
 }
 
