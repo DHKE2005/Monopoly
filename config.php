@@ -1,9 +1,21 @@
 <?php
 // 数据库配置文件
-define('DB_HOST', getenv('MYSQLHOST') ?: 'mysql.railway.internal');
-define('DB_USER', getenv('MYSQLUSER') ?: 'root');
-define('DB_PASS', getenv('MYSQLPASSWORD') ?: 'figPhOWtJdPWPPdiUvGyVqiKwndxStTo');
-define('DB_NAME', getenv('MYSQLDATABASE') ?: 'monopoly_game');
+// 检测是否在 Railway 环境（通过环境变量判断）
+$isRailway = getenv('RAILWAY_ENVIRONMENT') !== false;
+
+if ($isRailway) {
+    // Railway 生产环境配置
+    define('DB_HOST', getenv('MYSQLHOST') ?: 'mysql.railway.internal');
+    define('DB_USER', getenv('MYSQLUSER') ?: 'root');
+    define('DB_PASS', getenv('MYSQLPASSWORD') ?: '');
+    define('DB_NAME', getenv('MYSQLDATABASE') ?: 'monopoly_game');
+} else {
+    // 本地 XAMPP 开发环境配置
+    define('DB_HOST', 'localhost');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');  // XAMPP 默认密码为空
+    define('DB_NAME', 'monopoly_game');
+}
 
 // 创建数据库连接
 function getDBConnection() {
