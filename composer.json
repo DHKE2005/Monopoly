@@ -1,0 +1,6 @@
+{
+    "name": "monopoly-game",
+    "require": {
+        "php": "^8.0"
+    }
+}
