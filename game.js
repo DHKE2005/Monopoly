@@ -225,25 +225,50 @@ function selectRoomType(isLan) {
     document.getElementById('isLanRoom').value = isLan;
 }
 
-function createRoom() {
+async function createRoom() {
     const playerName = document.getElementById('multiPlayerName').value.trim();
     const roomName = document.getElementById('roomName').value.trim();
+    const maxPlayers = parseInt(document.getElementById('maxPlayers').value);
+    const isLan = document.getElementById('isLanRoom').value === 'true';
     
     if (!playerName || !roomName) {
         alert('请输入玩家名和房间名！');
         return;
     }
     
-    // ✅ 模拟房间创建
-    gameState.mode = 'multiplayer';
-    gameState.playerName = playerName;
-    gameState.roomCode = 'ROOM' + Math.random().toString(36).substr(2, 4).toUpperCase();
-    gameState.isHost = true;
-    
-    document.getElementById('displayRoomCode').textContent = gameState.roomCode;
-    document.getElementById('displayRoomName').textContent = roomName;
-    showScreen('waitingRoom');
-    updateWaitingRoom();
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'create_room',
+                room_name: roomName,
+                host_name: playerName,
+                max_players: maxPlayers,
+                is_lan: isLan
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(`创建房间失败: ${data.error}`);
+            return;
+        }
+        
+        gameState.mode = 'multiplayer';
+        gameState.playerName = playerName;
+        gameState.roomCode = data.room_code;
+        gameState.isHost = true;
+        
+        document.getElementById('displayRoomCode').textContent = data.room_code;
+        document.getElementById('displayRoomName').textContent = data.room_name;
+        showScreen('waitingRoom');
+        updateWaitingRoom();
+    } catch (error) {
+        console.error('Error creating room:', error);
+        alert('创建房间失败，请检查网络连接');
+    }
 }
 
 function switchRoomTab(tab) {
@@ -253,71 +278,179 @@ function switchRoomTab(tab) {
     refreshRoomList();
 }
 
-function refreshRoomList() {
+async function refreshRoomList() {
     const roomList = document.getElementById('roomList');
-    roomList.innerHTML = `
-        <div class="room-item" onclick="joinRoomByCode('ROOM1234')">
-            <div class="room-item-info">
-                <h4>测试房间</h4>
-                <p>房主: 测试玩家</p>
+    const isLan = document.getElementById('isLanRoom').value === 'true';
+    
+    roomList.innerHTML = '<div class="loading">正在加载房间列表...</div>';
+    
+    try {
+        const response = await fetch(`${API_URL}?action=get_rooms&is_lan=${isLan}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            roomList.innerHTML = `<div class="error-message">❌ ${data.error}</div>`;
+            return;
+        }
+        
+        if (!data.rooms || data.rooms.length === 0) {
+            roomList.innerHTML = '<div class="no-rooms">暂无可用房间，创建一个吧！</div>';
+            return;
+        }
+        
+        roomList.innerHTML = data.rooms.map(room => `
+            <div class="room-item" onclick="joinRoomByCode('${room.room_code}')">
+                <div class="room-item-info">
+                    <h4>${room.room_name}</h4>
+                    <p>房主: ${room.host_name}</p>
+                </div>
+                <div class="room-item-details">
+                    <div class="room-code">${room.room_code}</div>
+                    <div class="room-players">${room.current_players}/${room.max_players}人</div>
+                </div>
             </div>
-            <div class="room-item-details">
-                <div class="room-code">ROOM1234</div>
-                <div class="room-players">2/4人</div>
-            </div>
-        </div>
-    `;
+        `).join('');
+    } catch (error) {
+        console.error('Error fetching rooms:', error);
+        roomList.innerHTML = '<div class="error-message">❌ 加载失败，请检查网络连接</div>';
+    }
 }
 
-function joinRoomByCode(roomCode) {
+async function joinRoomByCode(roomCode) {
     const playerName = document.getElementById('multiPlayerName').value.trim();
     if (!playerName) {
         alert('请输入您的名字！');
         return;
     }
     
-    gameState.mode = 'multiplayer';
-    gameState.playerName = playerName;
-    gameState.roomCode = roomCode;
-    gameState.isHost = false;
-    
-    document.getElementById('displayRoomCode').textContent = roomCode;
-    showScreen('waitingRoom');
-    updateWaitingRoom();
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'join_room',
+                room_code: roomCode,
+                player_name: playerName
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(`加入房间失败: ${data.error}`);
+            return;
+        }
+        
+        gameState.mode = 'multiplayer';
+        gameState.playerName = playerName;
+        gameState.roomCode = roomCode;
+        gameState.isHost = false;
+        
+        document.getElementById('displayRoomCode').textContent = roomCode;
+        showScreen('waitingRoom');
+        updateWaitingRoom();
+    } catch (error) {
+        console.error('Error joining room:', error);
+        alert('加入房间失败，请检查网络连接');
+    }
 }
 
-function updateWaitingRoom() {
-    const playerList = document.getElementById('playerList');
-    const players = [
-        { player_name: gameState.playerName, player_color: gameState.isHost ? '#FF5252' : '#2196F3' }
-    ];
+async function updateWaitingRoom() {
+    if (!gameState.roomCode) return;
     
-    playerList.innerHTML = players.map(player => `
-        <div class="player-card" style="border-color: ${player.player_color}">
-            <div class="player-avatar" style="background: ${player.player_color}">${player.player_name[0]}</div>
-            <div class="player-info">
-                <h4>${player.player_name}</h4>
-                ${player.player_name === gameState.playerName ? '<p class="player-status">我</p>' : ''}
+    try {
+        const response = await fetch(`${API_URL}?action=get_room_info&room_code=${gameState.roomCode}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            console.error('Error getting room info:', data.error);
+            return;
+        }
+        
+        const room = data.room;
+        const players = data.players || [];
+        const maxPlayers = room.max_players || 4;
+        
+        // 更新房间名称
+        document.getElementById('displayRoomName').textContent = room.room_name;
+        
+        // 生成玩家卡片
+        const playerList = document.getElementById('playerList');
+        playerList.innerHTML = players.map(player => `
+            <div class="player-card" style="border-color: ${player.player_color}">
+                <div class="player-avatar" style="background: ${player.player_color}">${player.player_name[0]}</div>
+                <div class="player-info">
+                    <h4>${player.player_name}</h4>
+                    ${player.player_name === gameState.playerName ? '<p class="player-status">我</p>' : ''}
+                    ${player.player_name === room.host_name ? '<p class="player-status">房主</p>' : ''}
+                </div>
             </div>
-        </div>
-    `).concat(Array(3).fill(`
-        <div class="player-card waiting">
-            <div class="player-avatar">👤</div>
-        </div>
-    `)).join('');
-    
-    document.getElementById('startGameBtn').style.display = gameState.isHost ? 'inline-block' : 'none';
-    setTimeout(updateWaitingRoom, 2000);
+        `).concat(Array(maxPlayers - players.length).fill(`
+            <div class="player-card waiting">
+                <div class="player-avatar">👤</div>
+            </div>
+        `)).join('');
+        
+        // 只有房主才能看到开始游戏按钮
+        const isHost = gameState.playerName === room.host_name;
+        document.getElementById('startGameBtn').style.display = isHost ? 'inline-block' : 'none';
+        
+        // 如果游戏已经开始，跳转到游戏界面
+        if (room.status === 'playing' && !gameState.gameStarted) {
+            gameState.gameStarted = true;
+            startMultiplayerGame();
+            return;
+        }
+        
+        // 每 2 秒更新一次
+        setTimeout(updateWaitingRoom, 2000);
+    } catch (error) {
+        console.error('Error updating waiting room:', error);
+        setTimeout(updateWaitingRoom, 2000);
+    }
 }
 
-function leaveRoom() {
+async function leaveRoom() {
+    if (gameState.roomCode && gameState.playerName) {
+        try {
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'leave_room',
+                    room_code: gameState.roomCode,
+                    player_name: gameState.playerName
+                })
+            });
+        } catch (error) {
+            console.error('Error leaving room:', error);
+        }
+    }
     resetGameState();
     backToMultiplayerMenu();
 }
 
 function backToMultiplayerMenu() { showScreen('multiplayerMenu'); }
 
-function startMultiplayerGame() {
+async function startMultiplayerGame() {
+    if (gameState.isHost) {
+        // 房主通知服务器开始游戏
+        try {
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'start_game',
+                    room_code: gameState.roomCode
+                })
+            });
+        } catch (error) {
+            console.error('Error starting game:', error);
+            alert('开始游戏失败，请重试');
+            return;
+        }
+    }
+    
     gameState.gameStarted = true;
     gameState.players = [{
         name: gameState.playerName,

@@ -292,11 +292,16 @@ body {
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
 }
 
-.loading, .no-rooms {
+.loading, .no-rooms, .error-message {
     text-align: center;
     color: #666;
     padding: 40px;
     font-size: 1.1rem;
+}
+
+.error-message {
+    color: #f44336;
+    font-weight: bold;
 }
 
 /* 等待室 */
