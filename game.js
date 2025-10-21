@@ -476,6 +476,7 @@ async function leaveRoom() {
     }
     
     resetGameState();
+    showScreen('mainMenu');
 }
 
 function backToMultiplayerMenu() {

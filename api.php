@@ -139,8 +139,14 @@ function createRoom($conn) {
             'room_name' => $roomName
         ]);
     } catch (PDOException $e) {
-        error_log("Create Room Error: " . $e->getMessage());
-        jsonResponse(['error' => 'Failed to create room'], 500);
+        $errorMsg = "Create Room Error: " . $e->getMessage();
+        $errorMsg .= "\nSQL State: " . $e->getCode();
+        $errorMsg .= "\nRoom Name: " . $roomName;
+        $errorMsg .= "\nHost Name: " . $hostName;
+        $errorMsg .= "\nMax Players: " . $maxPlayers;
+        $errorMsg .= "\nIs LAN: " . ($isLan ? 'true' : 'false');
+        error_log($errorMsg);
+        jsonResponse(['error' => 'Failed to create room: ' . $e->getMessage()], 500);
     }
 }
 

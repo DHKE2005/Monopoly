@@ -68,6 +68,80 @@ function getDBConnection() {
         // 测试连接
         $conn->query("SELECT 1");
         
+        // 在生产环境中自动创建表（如果不存在）
+        if ($isProduction) {
+            try {
+                // 检查表是否存在
+                $stmt = $conn->query("SHOW TABLES LIKE 'rooms'");
+                if (!$stmt->fetch()) {
+                    error_log("Tables not found, creating database schema...");
+                    
+                    // 创建房间表
+                    $conn->exec("
+                        CREATE TABLE IF NOT EXISTS rooms (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            room_name VARCHAR(100) NOT NULL,
+                            room_code VARCHAR(20) UNIQUE NOT NULL,
+                            host_name VARCHAR(50) NOT NULL,
+                            max_players INT DEFAULT 4,
+                            current_players INT DEFAULT 1,
+                            status ENUM('waiting', 'playing', 'finished') DEFAULT 'waiting',
+                            is_lan BOOLEAN DEFAULT FALSE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            INDEX idx_room_code (room_code),
+                            INDEX idx_status (status)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                    ");
+                    
+                    // 创建玩家表
+                    $conn->exec("
+                        CREATE TABLE IF NOT EXISTS players (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            room_code VARCHAR(20) NOT NULL,
+                            player_name VARCHAR(50) NOT NULL,
+                            player_position INT DEFAULT 0,
+                            player_money INT DEFAULT 1500,
+                            player_color VARCHAR(20),
+                            is_active BOOLEAN DEFAULT TRUE,
+                            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            INDEX idx_room_code (room_code)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                    ");
+                    
+                    // 创建游戏状态表
+                    $conn->exec("
+                        CREATE TABLE IF NOT EXISTS game_states (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            room_code VARCHAR(20) NOT NULL,
+                            current_turn INT DEFAULT 0,
+                            dice_result VARCHAR(10),
+                            game_data JSON,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            UNIQUE KEY unique_room_state (room_code)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                    ");
+                    
+                    // 创建地产表
+                    $conn->exec("
+                        CREATE TABLE IF NOT EXISTS properties (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            room_code VARCHAR(20) NOT NULL,
+                            position INT NOT NULL,
+                            owner_name VARCHAR(50),
+                            house_count INT DEFAULT 0,
+                            is_mortgaged BOOLEAN DEFAULT FALSE,
+                            UNIQUE KEY unique_property (room_code, position)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                    ");
+                    
+                    error_log("Database schema created successfully");
+                }
+            } catch (PDOException $e) {
+                error_log("Failed to create database schema: " . $e->getMessage());
+            }
+        }
+        
         error_log("Database connection successful");
         return $conn;
     } catch(PDOException $e) {
