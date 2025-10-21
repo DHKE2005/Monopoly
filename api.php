@@ -1,14 +1,47 @@
 <?php
 require_once 'config.php';
 
-$conn = getDBConnection();
-if (!$conn) {
-    jsonResponse(['error' => 'Database connection failed'], 500);
+// 读取 JSON 请求体
+$input = file_get_contents('php://input');
+$requestData = json_decode($input, true);
+
+// 获取 action 参数（支持 GET 和 POST JSON）
+$action = $_GET['action'] ?? ($requestData['action'] ?? '');
+
+// 只有需要数据库的操作才检查连接
+$needsDB = !in_array($action, ['test', 'ping', '']);
+
+if ($needsDB) {
+    $conn = getDBConnection();
+    if (!$conn) {
+        jsonResponse(['error' => 'Database connection failed'], 500);
+    }
+} else {
+    $conn = null;
 }
 
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
-
 switch ($action) {
+    case 'test':
+    case 'ping':
+        jsonResponse([
+            'success' => true,
+            'message' => 'API is working!',
+            'server_time' => date('Y-m-d H:i:s'),
+            'php_version' => phpversion()
+        ]);
+        break;
+    case 'test_db':
+        if ($conn) {
+            jsonResponse([
+                'success' => true,
+                'message' => 'Database connection successful!',
+                'database' => DB_NAME,
+                'host' => DB_HOST
+            ]);
+        } else {
+            jsonResponse(['error' => 'Database connection failed'], 500);
+        }
+        break;
     case 'create_room':
         createRoom($conn);
         break;
@@ -40,18 +73,28 @@ switch ($action) {
         updateProperty($conn);
         break;
     default:
-        jsonResponse(['error' => 'Invalid action'], 400);
+        jsonResponse([
+            'error' => 'Invalid action',
+            'received_action' => $action,
+            'available_actions' => [
+                'test', 'test_db', 'create_room', 'join_room', 
+                'get_rooms', 'get_room_info', 'leave_room', 
+                'start_game', 'update_game_state', 'get_game_state',
+                'update_player', 'update_property'
+            ]
+        ], 400);
 }
 
 // 创建房间
 function createRoom($conn) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    global $requestData;
+    $data = $requestData;
     
     $roomName = $data['room_name'] ?? '';
     $hostName = $data['host_name'] ?? '';
     $isLan = $data['is_lan'] ?? false;
     $maxPlayers = $data['max_players'] ?? 4;
-    
+
     if (empty($roomName) || empty($hostName)) {
         jsonResponse(['error' => 'Room name and host name are required'], 400);
     }
@@ -103,7 +146,8 @@ function createRoom($conn) {
 
 // 加入房间
 function joinRoom($conn) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    global $requestData;
+    $data = $requestData;
     
     $roomCode = $data['room_code'] ?? '';
     $playerName = $data['player_name'] ?? '';
@@ -229,7 +273,8 @@ function getRoomInfo($conn) {
 
 // 离开房间
 function leaveRoom($conn) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    global $requestData;
+    $data = $requestData;
     
     $roomCode = $data['room_code'] ?? '';
     $playerName = $data['player_name'] ?? '';
@@ -261,7 +306,8 @@ function leaveRoom($conn) {
 
 // 开始游戏
 function startGame($conn) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    global $requestData;
+    $data = $requestData;
     $roomCode = $data['room_code'] ?? '';
     
     try {
@@ -276,7 +322,8 @@ function startGame($conn) {
 
 // 更新游戏状态
 function updateGameState($conn) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    global $requestData;
+    $data = $requestData;
     
     $roomCode = $data['room_code'] ?? '';
     $gameData = $data['game_data'] ?? [];
@@ -316,7 +363,8 @@ function getGameState($conn) {
 
 // 更新玩家信息
 function updatePlayer($conn) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    global $requestData;
+    $data = $requestData;
     
     $roomCode = $data['room_code'] ?? '';
     $playerName = $data['player_name'] ?? '';
@@ -363,7 +411,8 @@ function updatePlayer($conn) {
 
 // 更新地产信息
 function updateProperty($conn) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    global $requestData;
+    $data = $requestData;
     
     $roomCode = $data['room_code'] ?? '';
     $position = $data['position'] ?? null;

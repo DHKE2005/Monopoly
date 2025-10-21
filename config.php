@@ -12,8 +12,8 @@ if ($isRailway) {
 } else {
     // 本地 XAMPP 开发环境配置
     define('DB_HOST', 'localhost');
-    define('DB_USER', 'root');
-    define('DB_PASS', '');  // XAMPP 默认密码为空
+    define('DB_USER', 'username');
+    define('DB_PASS', 'password');  // XAMPP 默认密码为空
     define('DB_NAME', 'monopoly_game');
 }
 
