@@ -1,9 +1,9 @@
 <?php
 // 数据库配置文件
-define('DB_HOST', 'mysql.railway.internal');
-define('DB_USER', 'root');
-define('DB_PASS', 'figPhOWtJdPWPPdiUvGyVqiKwndxStTo');
-define('DB_NAME', 'monopoly_game');
+define('DB_HOST', getenv('MYSQLHOST') ?: 'mysql.railway.internal');
+define('DB_USER', getenv('MYSQLUSER') ?: 'root');
+define('DB_PASS', getenv('MYSQLPASSWORD') ?: 'figPhOWtJdPWPPdiUvGyVqiKwndxStTo');
+define('DB_NAME', getenv('MYSQLDATABASE') ?: 'monopoly_game');
 
 // 创建数据库连接
 function getDBConnection() {
