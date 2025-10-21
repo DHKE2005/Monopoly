@@ -25,7 +25,8 @@ let gameState = {
     properties: [],
     isHost: false,
     gameStarted: false,
-    updateInterval: null
+    updateInterval: null,
+    isPlayerAction: false
 };
 
 let currentScreen = 'mainMenu';
@@ -644,6 +645,9 @@ async function rollDice() {
         }
     }
     
+    // 设置玩家操作标志，防止同步覆盖
+    gameState.isPlayerAction = true;
+    
     const rollBtn = document.getElementById('rollDiceBtn');
     rollBtn.disabled = true;
     document.getElementById('diceDisplay').style.display = 'flex';
@@ -683,7 +687,12 @@ async function rollDice() {
     
     if (gameState.mode === 'multiplayer') {
         await syncGameStateToServer();
+        // 延迟一点时间让服务器同步完成
+        await sleep(500);
     }
+    
+    // 清除玩家操作标志
+    gameState.isPlayerAction = false;
     
     document.getElementById('endTurnBtn').style.display = 'inline-block';
     rollBtn.style.display = 'none';
@@ -711,13 +720,15 @@ async function handleLanding() {
     const player = gameState.players[gameState.currentPlayerIndex];
     const space = gameState.properties[player.position];
     
+    console.log(`🎯 ${player.name} 落在 ${space.name} (类型: ${space.type})`);
+    
     switch (space.type) {
         case 'property':
             await handlePropertyLanding(space);
             break;
         case 'tax':
             player.money -= space.amount;
-            showEventMessage(`缴纳 ${space.name}: -$${space.amount}`);
+            showEventMessage(`${player.name} 缴纳 ${space.name}: -$${space.amount}`);
             break;
         case 'chance':
             await handleChanceCard();
@@ -728,11 +739,11 @@ async function handleLanding() {
         case 'jail':
         case 'gotojail':
             player.position = 10;
-            showEventMessage('进入监狱！');
+            showEventMessage(`${player.name} 进入监狱！`);
             break;
         case 'parking':
             player.money += 200;
-            showEventMessage('免费停车！获得 $200');
+            showEventMessage(`${player.name} 免费停车！获得 $200`);
             break;
     }
     
@@ -747,7 +758,10 @@ async function handlePropertyLanding(property) {
     const player = gameState.players[gameState.currentPlayerIndex];
     
     if (!property.owner) {
+        // 在多人模式下，只有当前玩家才能购买地产
         if (gameState.mode === 'multiplayer' && player.name !== gameState.playerName) {
+            // 非当前玩家只显示消息，不触发购买对话框
+            showEventMessage(`${player.name} 停在了无主地产 "${property.name}"`);
             return;
         }
         
@@ -783,25 +797,46 @@ async function handlePropertyLanding(property) {
 
 async function handleChanceCard() {
     const card = CHANCE_CARDS[Math.floor(Math.random() * CHANCE_CARDS.length)];
-    showEventMessage(card.text);
     const player = gameState.players[gameState.currentPlayerIndex];
     
-    if (card.money) player.money += card.money;
-    if (card.move !== undefined) player.position = card.move;
+    showEventMessage(`${player.name} 抽到机会卡: ${card.text}`);
+    
+    if (card.money) {
+        player.money += card.money;
+        showEventMessage(`${player.name} ${card.money > 0 ? '获得' : '失去'} $${Math.abs(card.money)}`);
+    }
+    if (card.move !== undefined) {
+        player.position = card.move;
+        showEventMessage(`${player.name} 移动到位置 ${card.move}`);
+    }
+    
     updateBoardTokens();
+    updatePlayerStats();
 }
 
 async function handleCommunityCard() {
     const card = COMMUNITY_CARDS[Math.floor(Math.random() * COMMUNITY_CARDS.length)];
-    showEventMessage(card.text);
     const player = gameState.players[gameState.currentPlayerIndex];
     
-    if (card.money) player.money += card.money;
-    if (card.move !== undefined) player.position = card.move;
+    showEventMessage(`${player.name} 抽到社区宝箱: ${card.text}`);
+    
+    if (card.money) {
+        player.money += card.money;
+        showEventMessage(`${player.name} ${card.money > 0 ? '获得' : '失去'} $${Math.abs(card.money)}`);
+    }
+    if (card.move !== undefined) {
+        player.position = card.move;
+        showEventMessage(`${player.name} 移动到位置 ${card.move}`);
+    }
+    
     updateBoardTokens();
+    updatePlayerStats();
 }
 
 async function endTurn() {
+    // 设置玩家操作标志
+    gameState.isPlayerAction = true;
+    
     document.getElementById('endTurnBtn').style.display = 'none';
     document.getElementById('rollDiceBtn').style.display = 'inline-block';
     document.getElementById('rollDiceBtn').disabled = false;
@@ -815,6 +850,9 @@ async function endTurn() {
     if (gameState.mode === 'multiplayer') {
         await syncGameStateToServer();
     }
+    
+    // 清除玩家操作标志
+    gameState.isPlayerAction = false;
     
     const activePlayers = gameState.players.filter(p => p.money > 0);
     if (activePlayers.length <= 1) {
@@ -906,7 +944,7 @@ function resetGameState() {
     gameState = {
         mode: 'single', roomCode: null, playerName: null, players: [],
         currentPlayerIndex: 0, board: [], properties: [], isHost: false, 
-        gameStarted: false, updateInterval: null
+        gameStarted: false, updateInterval: null, isPlayerAction: false
     };
 }
 
@@ -1037,7 +1075,10 @@ function startMultiplayerGameSync() {
     if (gameState.updateInterval) clearInterval(gameState.updateInterval);
     gameState.updateInterval = setInterval(async () => {
         if (currentScreen === 'gameScreen' && gameState.gameStarted) {
-            await syncGameStateFromServer();
+            // 避免在玩家操作期间同步，防止位置被覆盖
+            if (!gameState.isPlayerAction) {
+                await syncGameStateFromServer();
+            }
         }
     }, 3000);
 }
@@ -1107,10 +1148,28 @@ async function syncGameStateFromServer() {
                 const sp = serverState.players[i];
                 if (!sp) continue;
                 const lp = gameState.players[i];
-                const shouldUpdate =
-                    (typeof sp.position === 'number' && sp.position !== lp.position) ||
-                    (typeof sp.money === 'number' && sp.money !== lp.money) ||
-                    (typeof sp.name === 'string' && sp.name !== lp.name);
+                
+                // 特殊处理：如果是当前玩家且正在操作，不覆盖位置
+                const isCurrentPlayer = i === gameState.currentPlayerIndex;
+                const isMyPlayer = lp.name === gameState.playerName;
+                
+                let shouldUpdate = false;
+                
+                // 位置更新逻辑：只有非当前玩家或非我的玩家才从服务器同步位置
+                if (typeof sp.position === 'number' && sp.position !== lp.position) {
+                    if (!isCurrentPlayer || !isMyPlayer) {
+                        shouldUpdate = true;
+                    }
+                }
+                
+                // 金钱和名字总是可以同步
+                if (typeof sp.money === 'number' && sp.money !== lp.money) {
+                    shouldUpdate = true;
+                }
+                if (typeof sp.name === 'string' && sp.name !== lp.name) {
+                    shouldUpdate = true;
+                }
+                
                 if (shouldUpdate) {
                     gameState.players[i] = { ...lp, ...sp };
                     needsUpdate = true;
@@ -1133,6 +1192,20 @@ async function syncGameStateFromServer() {
             updatePlayerStats();
             updateBoardTokens();
             updateGameControls();
+            
+            // 如果玩家位置发生变化，可能需要处理落地事件
+            // 但只在非当前玩家操作期间进行
+            if (!gameState.isPlayerAction) {
+                // 检查是否有玩家位置变化，如果有则处理落地事件
+                for (let i = 0; i < gameState.players.length; i++) {
+                    const player = gameState.players[i];
+                    if (player.name === gameState.playerName && i === gameState.currentPlayerIndex) {
+                        // 这是当前玩家，不在这里处理落地事件
+                        continue;
+                    }
+                    // 对于其他玩家，可以在这里处理一些被动效果
+                }
+            }
         }
     } catch (error) {
         console.error('❌ 同步失败:', error);
