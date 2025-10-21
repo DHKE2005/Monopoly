@@ -1,6 +1,8 @@
 {
     "name": "monopoly-game",
     "require": {
-        "php": "^8.2.12"
+        "php": "^8.0 || ^8.1 || ^8.2",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*"
     }
 }

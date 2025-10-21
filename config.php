@@ -1,8 +1,8 @@
 <?php
 // 数据库配置文件
-define('DB_HOST', 'localhost');
-define('DB_USER', 'username');
-define('DB_PASS', 'password');
+define('DB_HOST', 'mysql.railway.internal');
+define('DB_USER', 'root');
+define('DB_PASS', 'figPhOWtJdPWPPdiUvGyVqiKwndxStTo');
 define('DB_NAME', 'monopoly_game');
 
 // 创建数据库连接
