@@ -313,7 +313,15 @@ function startGame($conn) {
     try {
         $stmt = $conn->prepare("UPDATE rooms SET status = 'playing' WHERE room_code = ?");
         $stmt->execute([$roomCode]);
-        
+
+        // 初始化或重置游戏状态，至少包含有效的回合索引，避免前端被 undefined 覆盖
+        $gameData = [
+            'currentPlayerIndex' => 0
+        ];
+
+        $stmt = $conn->prepare("UPDATE game_states SET game_data = ?, updated_at = CURRENT_TIMESTAMP WHERE room_code = ?");
+        $stmt->execute([json_encode($gameData), $roomCode]);
+
         jsonResponse(['success' => true]);
     } catch (PDOException $e) {
         jsonResponse(['error' => 'Failed to start game'], 500);

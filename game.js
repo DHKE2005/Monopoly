@@ -1,4 +1,4 @@
-// game.js - 大富翁完整游戏逻辑（100%修复版）
+// game.js - 大富翁完整游戏逻辑（完善版）
 console.log('🎲 大富翁游戏脚本加载中...');
 
 // ========================================
@@ -14,7 +14,8 @@ let gameState = {
     board: [],
     properties: [],
     isHost: false,
-    gameStarted: false
+    gameStarted: false,
+    updateInterval: null
 };
 
 let currentScreen = 'mainMenu';
@@ -22,135 +23,150 @@ let currentScreen = 'mainMenu';
 // 游戏棋盘配置（40个位置）
 const BOARD_CONFIG = [
     { id: 0, name: '出发', type: 'start', color: '#4CAF50' },
-    { id: 1, name: '地中海大道', type: 'property', color: '#8BC34A', price: 60, rent: [2, 10, 30, 90, 160, 250] },
-    { id: 2, name: '社区宝箱', type: 'chance' },
-    { id: 3, name: '巴尔的摩大道', type: 'property', color: '#8BC34A', price: 60, rent: [4, 20, 60, 180, 320, 450] },
-    { id: 4, name: '缴税 $200', type: 'tax', amount: 200 },
-    { id: 5, name: '铁路', type: 'railroad', price: 200, rent: [25, 50, 100, 200] },
-    { id: 6, name: '东方大道', type: 'property', color: '#2196F3', price: 100, rent: [6, 30, 90, 270, 400, 550] },
-    { id: 7, name: '机会', type: 'community' },
-    { id: 8, name: '佛蒙特大道', type: 'property', color: '#2196F3', price: 100, rent: [6, 30, 90, 270, 400, 550] },
-    { id: 9, name: '康涅狄格大道', type: 'property', color: '#2196F3', price: 120, rent: [8, 40, 100, 300, 450, 600] },
-    { id: 10, name: '监狱', type: 'jail' },
-    { id: 11, name: '圣查尔斯广场', type: 'property', color: '#FF9800', price: 140, rent: [10, 50, 150, 450, 625, 800] },
-    { id: 12, name: '电力公司', type: 'utility', price: 150, rent: [4, 10] },
-    { id: 13, name: '电报大道', type: 'property', color: '#FF9800', price: 140, rent: [10, 50, 150, 450, 625, 800] },
-    { id: 14, name: '宾夕法尼亚铁路', type: 'railroad', price: 200, rent: [25, 50, 100, 200] },
-    { id: 15, name: '弗吉尼亚大道', type: 'property', color: '#FF5722', price: 160, rent: [12, 60, 180, 500, 700, 900] },
-    { id: 16, name: '宾夕法尼亚铁路', type: 'railroad', price: 200, rent: [25, 50, 100, 200] },
-    { id: 17, name: '圣詹姆斯广场', type: 'property', color: '#FF5722', price: 180, rent: [14, 70, 200, 550, 750, 950] },
-    { id: 18, name: '社区宝箱', type: 'chance' },
-    { id: 19, name: '田纳西大道', type: 'property', color: '#FF5722', price: 180, rent: [14, 70, 200, 550, 750, 950] },
-    { id: 20, name: '免费停车', type: 'parking' },
-    { id: 21, name: '纽约大道', type: 'property', color: '#F44336', price: 200, rent: [16, 80, 220, 600, 800, 1000] },
-    { id: 22, name: '地铁', type: 'railroad', price: 200, rent: [25, 50, 100, 200] },
-    { id: 23, name: '肯塔基大道', type: 'property', color: '#F44336', price: 220, rent: [18, 90, 250, 700, 875, 1050] },
-    { id: 24, name: '机会', type: 'community' },
-    { id: 25, name: '印第安纳大道', type: 'property', color: '#F44336', price: 220, rent: [18, 90, 250, 700, 875, 1050] },
-    { id: 26, name: '伊利诺伊大道', type: 'property', color: '#F44336', price: 240, rent: [20, 100, 300, 750, 925, 1100] },
-    { id: 27, name: 'B&O铁路', type: 'railroad', price: 200, rent: [25, 50, 100, 200] },
-    { id: 28, name: '大西洋大道', type: 'property', color: '#FFC107', price: 260, rent: [22, 110, 330, 800, 975, 1150] },
-    { id: 29, name: '通风管道', type: 'tax', amount: 75 },
-    { id: 30, name: '伯灵顿大道', type: 'property', color: '#FFC107', price: 260, rent: [22, 110, 330, 800, 975, 1150] },
-    { id: 31, name: '宾夕法尼亚大道', type: 'property', color: '#FFC107', price: 280, rent: [24, 120, 360, 850, 1025, 1200] },
-    { id: 32, name: '社区宝箱', type: 'chance' },
-    { id: 33, name: '太平洋大道', type: 'property', color: '#9C27B0', price: 300, rent: [26, 130, 390, 900, 1100, 1275] },
-    { id: 34, name: '北卡罗来纳大道', type: 'property', color: '#9C27B0', price: 300, rent: [26, 130, 390, 900, 1100, 1275] },
-    { id: 35, name: '社区宝箱', type: 'community' },
-    { id: 36, name: '宾夕法尼亚大道', type: 'property', color: '#9C27B0', price: 320, rent: [28, 150, 450, 1000, 1200, 1400] },
-    { id: 37, name: '水务公司', type: 'utility', price: 150, rent: [4, 10] },
-    { id: 38, name: '文多大道', type: 'property', color: '#607D8B', price: 350, rent: [35, 175, 525, 1100, 1300, 1500] },
-    { id: 39, name: '前往监狱', type: 'gotojail' }
+    { id: 1, name: '地中海大道', type: 'property', color: '#8B4513', price: 60, rent: [2, 10, 30, 90, 160, 250], group: 'brown' },
+    { id: 2, name: '社区宝箱', type: 'chance', color: '#FF9800' },
+    { id: 3, name: '波罗的海大道', type: 'property', color: '#8B4513', price: 60, rent: [4, 20, 60, 180, 320, 450], group: 'brown' },
+    { id: 4, name: '所得税', type: 'tax', amount: 200, color: '#F44336' },
+    { id: 5, name: '阅读铁路', type: 'railroad', price: 200, rent: [25, 50, 100, 200], color: '#212121' },
+    { id: 6, name: '东方大道', type: 'property', color: '#87CEEB', price: 100, rent: [6, 30, 90, 270, 400, 550], group: 'lightblue' },
+    { id: 7, name: '机会', type: 'community', color: '#2196F3' },
+    { id: 8, name: '佛蒙特大道', type: 'property', color: '#87CEEB', price: 100, rent: [6, 30, 90, 270, 400, 550], group: 'lightblue' },
+    { id: 9, name: '康涅狄格大道', type: 'property', color: '#87CEEB', price: 120, rent: [8, 40, 100, 300, 450, 600], group: 'lightblue' },
+    { id: 10, name: '监狱', type: 'jail', color: '#FF5722' },
+    { id: 11, name: '圣查尔斯广场', type: 'property', color: '#FF1493', price: 140, rent: [10, 50, 150, 450, 625, 750], group: 'pink' },
+    { id: 12, name: '电力公司', type: 'utility', price: 150, rent: [4, 10], color: '#FFC107' },
+    { id: 13, name: '州大道', type: 'property', color: '#FF1493', price: 140, rent: [10, 50, 150, 450, 625, 750], group: 'pink' },
+    { id: 14, name: '宾夕法尼亚铁路', type: 'railroad', price: 200, rent: [25, 50, 100, 200], color: '#212121' },
+    { id: 15, name: '弗吉尼亚大道', type: 'property', color: '#FFA500', price: 160, rent: [12, 60, 180, 500, 700, 900], group: 'orange' },
+    { id: 16, name: '圣詹姆斯广场', type: 'property', color: '#FFA500', price: 180, rent: [14, 70, 200, 550, 750, 950], group: 'orange' },
+    { id: 17, name: '社区宝箱', type: 'chance', color: '#FF9800' },
+    { id: 18, name: '田纳西大道', type: 'property', color: '#FFA500', price: 180, rent: [14, 70, 200, 550, 750, 950], group: 'orange' },
+    { id: 19, name: '纽约大道', type: 'property', color: '#FFA500', price: 200, rent: [16, 80, 220, 600, 800, 1000], group: 'orange' },
+    { id: 20, name: '免费停车', type: 'parking', color: '#9C27B0' },
+    { id: 21, name: '肯塔基大道', type: 'property', color: '#FF0000', price: 220, rent: [18, 90, 250, 700, 875, 1050], group: 'red' },
+    { id: 22, name: '机会', type: 'community', color: '#2196F3' },
+    { id: 23, name: '印第安纳大道', type: 'property', color: '#FF0000', price: 220, rent: [18, 90, 250, 700, 875, 1050], group: 'red' },
+    { id: 24, name: '伊利诺伊大道', type: 'property', color: '#FF0000', price: 240, rent: [20, 100, 300, 750, 925, 1100], group: 'red' },
+    { id: 25, name: 'B&O铁路', type: 'railroad', price: 200, rent: [25, 50, 100, 200], color: '#212121' },
+    { id: 26, name: '大西洋大道', type: 'property', color: '#FFFF00', price: 260, rent: [22, 110, 330, 800, 975, 1150], group: 'yellow' },
+    { id: 27, name: '文特诺大道', type: 'property', color: '#FFFF00', price: 260, rent: [22, 110, 330, 800, 975, 1150], group: 'yellow' },
+    { id: 28, name: '水务公司', type: 'utility', price: 150, rent: [4, 10], color: '#FFC107' },
+    { id: 29, name: '马文花园', type: 'property', color: '#FFFF00', price: 280, rent: [24, 120, 360, 850, 1025, 1200], group: 'yellow' },
+    { id: 30, name: '前往监狱', type: 'gotojail', color: '#F44336' },
+    { id: 31, name: '太平洋大道', type: 'property', color: '#008000', price: 300, rent: [26, 130, 390, 900, 1100, 1275], group: 'green' },
+    { id: 32, name: '北卡罗来纳大道', type: 'property', color: '#008000', price: 300, rent: [26, 130, 390, 900, 1100, 1275], group: 'green' },
+    { id: 33, name: '社区宝箱', type: 'chance', color: '#FF9800' },
+    { id: 34, name: '宾夕法尼亚大道', type: 'property', color: '#008000', price: 320, rent: [28, 150, 450, 1000, 1200, 1400], group: 'green' },
+    { id: 35, name: '短线铁路', type: 'railroad', price: 200, rent: [25, 50, 100, 200], color: '#212121' },
+    { id: 36, name: '机会', type: 'community', color: '#2196F3' },
+    { id: 37, name: '公园广场', type: 'property', color: '#0000FF', price: 350, rent: [35, 175, 500, 1100, 1300, 1500], group: 'darkblue' },
+    { id: 38, name: '奢侈税', type: 'tax', amount: 100, color: '#F44336' },
+    { id: 39, name: '木板路', type: 'property', color: '#0000FF', price: 400, rent: [50, 200, 600, 1400, 1700, 2000], group: 'darkblue' }
 ];
 
 // 机会卡和社区宝箱卡片
 const CHANCE_CARDS = [
-    { text: '前进到铁路，获得$25', move: 5, money: 25 },
-    { text: '前进到水务公司', move: 12 },
-    { text: '前进到太平洋大道', move: 23 },
-    { text: '退回出发，获得$200', move: -3, money: 200 },
-    { text: '支付$50修理费用', money: -50 },
-    { text: '获得银行错误$200', money: 200 }
+    { text: '前进到起点，获得$200', money: 200, move: 0 },
+    { text: '前进到伊利诺伊大道', move: 24 },
+    { text: '前进到圣查尔斯广场', move: 11 },
+    { text: '银行分红，获得$50', money: 50 },
+    { text: '退回3格', moveBack: 3 },
+    { text: '超速罚款$15', money: -15 }
 ];
 
 const COMMUNITY_CARDS = [
     { text: '医院费用$100', money: -100 },
     { text: '学校费用$150', money: -150 },
-    { text: '获得$100', money: 100 },
-    { text: '前进到最近的铁路', move: 5 },
-    { text: '支付每栋房屋$25', money: -25 }
+    { text: '银行错误，获得$200', money: 200 },
+    { text: '出售股票，获得$50', money: 50 },
+    { text: '所得税退税，获得$20', money: 20 },
+    { text: '人寿保险到期，获得$100', money: 100 }
 ];
 
 // ========================================
 // 初始化事件监听
 // ========================================
 document.addEventListener('DOMContentLoaded', function() {
-    // ✅ 修复：为所有按钮绑定事件
-    document.querySelectorAll('.bot-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+    console.log('DOM加载完成，初始化事件监听器...');
+    
+    const botBtns = document.querySelectorAll('.bot-btn');
+    botBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
             selectBotCount(parseInt(this.dataset.count));
         });
     });
     
-    document.querySelectorAll('.player-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+    const playerBtns = document.querySelectorAll('.player-btn');
+    playerBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
             selectMaxPlayers(parseInt(this.dataset.count));
         });
     });
     
-    document.querySelectorAll('.type-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+    const typeBtns = document.querySelectorAll('.type-btn');
+    typeBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
             selectRoomType(this.dataset.lan === 'true');
         });
     });
     
-    console.log('✅ 事件监听器绑定完成！');
+    console.log('🎉 所有事件监听器绑定完成！');
 });
 
 // ========================================
 // 屏幕管理
 // ========================================
 function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
-    currentScreen = screenId;
+    console.log(`切换到屏幕: ${screenId}`);
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+    });
     
-    switch(screenId) {
-        case 'mainMenu':
-            document.getElementById('playerName').value = '';
-            break;
-        case 'singlePlayerSetup':
-            selectBotCount(2);
-            break;
-        case 'multiplayerMenu':
-            document.getElementById('multiPlayerName').value = '';
-            break;
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.classList.add('active');
+        currentScreen = screenId;
     }
 }
 
 function backToMainMenu() {
-    showScreen('mainMenu');
+    if (gameState.updateInterval) {
+        clearInterval(gameState.updateInterval);
+        gameState.updateInterval = null;
+    }
+    
     if (gameState.mode === 'multiplayer' && gameState.roomCode) {
         leaveRoom();
     }
+    
     resetGameState();
+    showScreen('mainMenu');
 }
 
 // ========================================
 // 主菜单功能
 // ========================================
-function showSinglePlayerSetup() { showScreen('singlePlayerSetup'); }
+function showSinglePlayerSetup() {
+    showScreen('singlePlayerSetup');
+}
 
-function showMultiplayerMenu() { showScreen('multiplayerMenu'); }
+function showMultiplayerMenu() {
+    showScreen('multiplayerMenu');
+}
 
-function exitGame() {
-    if (confirm('确定要退出游戏吗？')) {
+async function exitGame() {
+    const confirmed = await showConfirmDialog('退出游戏', '确定要退出游戏吗？');
+    if (confirmed) {
         window.close();
+        setTimeout(() => showAlertDialog('提示', '请手动关闭浏览器标签页'), 100);
     }
 }
 
 // ========================================
-// 单人游戏设置 - ✅ 修复版
+// 单人游戏设置
 // ========================================
 function selectBotCount(count) {
     document.querySelectorAll('.bot-btn').forEach(btn => btn.classList.remove('active'));
@@ -158,54 +174,68 @@ function selectBotCount(count) {
     document.getElementById('botCount').value = count;
 }
 
-function startSinglePlayer() {
+async function startSinglePlayer() {
     const playerName = document.getElementById('playerName').value.trim();
-    const botCount = parseInt(document.getElementById('botCount').value);
+    const botCount = parseInt(document.getElementById('botCount').value) || 2;
     
     if (!playerName) {
-        alert('请输入您的名字！');
+        await showAlertDialog('提示', '请输入您的名字！');
         return;
     }
     
     gameState.mode = 'single';
     gameState.playerName = playerName;
+    gameState.currentPlayerIndex = 0;
+    gameState.gameStarted = true;
+    
     gameState.players = [{
         name: playerName,
         color: '#FF5252',
         money: 1500,
         position: 0,
         isBot: false,
-        properties: []
+        properties: [],
+        inJail: false,
+        jailTurns: 0
     }];
     
     const botNames = ['AI小强', 'AI小华', 'AI小明'];
     const botColors = ['#2196F3', '#4CAF50', '#FFC107'];
     
-    for (let i = 0; i < botCount; i++) {
+    for (let i = 0; i < Math.min(botCount, 3); i++) {
         gameState.players.push({
             name: botNames[i],
             color: botColors[i],
             money: 1500,
             position: 0,
             isBot: true,
-            properties: []
+            properties: [],
+            inJail: false,
+            jailTurns: 0
         });
     }
     
     gameState.board = [...BOARD_CONFIG];
-    gameState.properties = BOARD_CONFIG.map(p => ({ ...p, owner: null, houses: 0 }));
+    gameState.properties = BOARD_CONFIG.map(p => ({
+        ...p,
+        owner: null,
+        houses: 0,
+        isMortgaged: false
+    }));
     
     showScreen('gameScreen');
     initGameScreen();
 }
 
 // ========================================
-// 多人游戏功能 - ✅ 简化版（本地模拟）
+// 多人游戏功能
 // ========================================
 function showCreateRoom() {
     showScreen('createRoomScreen');
-    selectMaxPlayers(4);
-    selectRoomType(true);
+    setTimeout(() => {
+        selectMaxPlayers(4);
+        selectRoomType(true);
+    }, 100);
 }
 
 function showJoinRoom() {
@@ -215,24 +245,26 @@ function showJoinRoom() {
 
 function selectMaxPlayers(count) {
     document.querySelectorAll('.player-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    const targetBtn = document.querySelector(`.player-btn[data-count="${count}"]`);
+    if (targetBtn) targetBtn.classList.add('active');
     document.getElementById('maxPlayers').value = count;
 }
 
 function selectRoomType(isLan) {
     document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    const targetBtn = document.querySelector(`.type-btn[data-lan="${isLan}"]`);
+    if (targetBtn) targetBtn.classList.add('active');
     document.getElementById('isLanRoom').value = isLan;
 }
 
 async function createRoom() {
     const playerName = document.getElementById('multiPlayerName').value.trim();
     const roomName = document.getElementById('roomName').value.trim();
-    const maxPlayers = parseInt(document.getElementById('maxPlayers').value);
+    const maxPlayers = parseInt(document.getElementById('maxPlayers').value) || 4;
     const isLan = document.getElementById('isLanRoom').value === 'true';
     
     if (!playerName || !roomName) {
-        alert('请输入玩家名和房间名！');
+        await showAlertDialog('提示', '请输入玩家名和房间名！');
         return;
     }
     
@@ -252,7 +284,7 @@ async function createRoom() {
         const data = await response.json();
         
         if (data.error) {
-            alert(`创建房间失败: ${data.error}`);
+            await showAlertDialog('错误', `创建房间失败: ${data.error}`);
             return;
         }
         
@@ -263,11 +295,11 @@ async function createRoom() {
         
         document.getElementById('displayRoomCode').textContent = data.room_code;
         document.getElementById('displayRoomName').textContent = data.room_name;
+        
         showScreen('waitingRoom');
-        updateWaitingRoom();
+        startWaitingRoomUpdates();
     } catch (error) {
-        console.error('Error creating room:', error);
-        alert('创建房间失败，请检查网络连接');
+        await showAlertDialog('错误', '创建房间失败，请检查网络连接');
     }
 }
 
@@ -282,7 +314,7 @@ async function refreshRoomList() {
     const roomList = document.getElementById('roomList');
     const isLan = document.getElementById('isLanRoom').value === 'true';
     
-    roomList.innerHTML = '<div class="loading">正在加载房间列表...</div>';
+    roomList.innerHTML = '<div class="loading">🔄 正在加载房间列表...</div>';
     
     try {
         const response = await fetch(`${API_URL}?action=get_rooms&is_lan=${isLan}`);
@@ -294,24 +326,23 @@ async function refreshRoomList() {
         }
         
         if (!data.rooms || data.rooms.length === 0) {
-            roomList.innerHTML = '<div class="no-rooms">暂无可用房间，创建一个吧！</div>';
+            roomList.innerHTML = '<div class="no-rooms">📭 暂无可用房间，创建一个吧！</div>';
             return;
         }
         
         roomList.innerHTML = data.rooms.map(room => `
             <div class="room-item" onclick="joinRoomByCode('${room.room_code}')">
                 <div class="room-item-info">
-                    <h4>${room.room_name}</h4>
+                    <h4>🏠 ${room.room_name}</h4>
                     <p>房主: ${room.host_name}</p>
                 </div>
                 <div class="room-item-details">
-                    <div class="room-code">${room.room_code}</div>
-                    <div class="room-players">${room.current_players}/${room.max_players}人</div>
+                    <div class="room-code">#${room.room_code}</div>
+                    <div class="room-players">👥 ${room.current_players}/${room.max_players}</div>
                 </div>
             </div>
         `).join('');
     } catch (error) {
-        console.error('Error fetching rooms:', error);
         roomList.innerHTML = '<div class="error-message">❌ 加载失败，请检查网络连接</div>';
     }
 }
@@ -319,7 +350,7 @@ async function refreshRoomList() {
 async function joinRoomByCode(roomCode) {
     const playerName = document.getElementById('multiPlayerName').value.trim();
     if (!playerName) {
-        alert('请输入您的名字！');
+        await showAlertDialog('提示', '请输入您的名字！');
         return;
     }
     
@@ -337,7 +368,7 @@ async function joinRoomByCode(roomCode) {
         const data = await response.json();
         
         if (data.error) {
-            alert(`加入房间失败: ${data.error}`);
+            await showAlertDialog('错误', `加入房间失败: ${data.error}`);
             return;
         }
         
@@ -348,69 +379,86 @@ async function joinRoomByCode(roomCode) {
         
         document.getElementById('displayRoomCode').textContent = roomCode;
         showScreen('waitingRoom');
-        updateWaitingRoom();
+        startWaitingRoomUpdates();
     } catch (error) {
-        console.error('Error joining room:', error);
-        alert('加入房间失败，请检查网络连接');
+        await showAlertDialog('错误', '加入房间失败，请检查网络连接');
     }
 }
 
+function startWaitingRoomUpdates() {
+    updateWaitingRoom();
+    if (gameState.updateInterval) clearInterval(gameState.updateInterval);
+    gameState.updateInterval = setInterval(updateWaitingRoom, 2000);
+}
+
 async function updateWaitingRoom() {
-    if (!gameState.roomCode) return;
+    if (!gameState.roomCode || currentScreen !== 'waitingRoom') {
+        if (gameState.updateInterval) {
+            clearInterval(gameState.updateInterval);
+            gameState.updateInterval = null;
+        }
+        return;
+    }
     
     try {
         const response = await fetch(`${API_URL}?action=get_room_info&room_code=${gameState.roomCode}`);
         const data = await response.json();
         
-        if (data.error) {
-            console.error('Error getting room info:', data.error);
-            return;
-        }
+        if (data.error) return;
         
         const room = data.room;
         const players = data.players || [];
         const maxPlayers = room.max_players || 4;
         
-        // 更新房间名称
         document.getElementById('displayRoomName').textContent = room.room_name;
         
-        // 生成玩家卡片
         const playerList = document.getElementById('playerList');
-        playerList.innerHTML = players.map(player => `
+        const playerCards = players.map(player => `
             <div class="player-card" style="border-color: ${player.player_color}">
                 <div class="player-avatar" style="background: ${player.player_color}">${player.player_name[0]}</div>
                 <div class="player-info">
                     <h4>${player.player_name}</h4>
-                    ${player.player_name === gameState.playerName ? '<p class="player-status">我</p>' : ''}
-                    ${player.player_name === room.host_name ? '<p class="player-status">房主</p>' : ''}
+                    <p class="player-status">
+                        ${player.player_name === gameState.playerName ? '👤 我' : ''}
+                        ${player.player_name === room.host_name ? '👑 房主' : ''}
+                    </p>
                 </div>
             </div>
-        `).concat(Array(maxPlayers - players.length).fill(`
+        `);
+        
+        const emptySlots = Array(maxPlayers - players.length).fill(`
             <div class="player-card waiting">
                 <div class="player-avatar">👤</div>
+                <div class="player-info"><h4>等待中...</h4></div>
             </div>
-        `)).join('');
+        `);
         
-        // 只有房主才能看到开始游戏按钮
-        const isHost = gameState.playerName === room.host_name;
-        document.getElementById('startGameBtn').style.display = isHost ? 'inline-block' : 'none';
+        playerList.innerHTML = playerCards.concat(emptySlots).join('');
         
-        // 如果游戏已经开始，跳转到游戏界面
-        if (room.status === 'playing' && !gameState.gameStarted) {
-            gameState.gameStarted = true;
-            startMultiplayerGame();
-            return;
+        const startBtn = document.getElementById('startGameBtn');
+        if (startBtn) {
+            const isHost = gameState.playerName === room.host_name;
+            const canStart = isHost && players.length >= 2;
+            startBtn.style.display = canStart ? 'inline-block' : 'none';
         }
         
-        // 每 2 秒更新一次
-        setTimeout(updateWaitingRoom, 2000);
+        if (room.status === 'playing' && !gameState.gameStarted) {
+            clearInterval(gameState.updateInterval);
+            gameState.updateInterval = null;
+            gameState.gameStarted = true;
+            await initMultiplayerGame(players);
+        }
     } catch (error) {
-        console.error('Error updating waiting room:', error);
-        setTimeout(updateWaitingRoom, 2000);
+        console.error('❌ 更新等待室错误:', error);
     }
 }
 
 async function leaveRoom() {
+    if (gameState.updateInterval) {
+        clearInterval(gameState.updateInterval);
+        gameState.updateInterval = null;
+    }
+    
     if (gameState.roomCode && gameState.playerName) {
         try {
             await fetch(API_URL, {
@@ -423,47 +471,69 @@ async function leaveRoom() {
                 })
             });
         } catch (error) {
-            console.error('Error leaving room:', error);
-        }
-    }
-    resetGameState();
-    backToMultiplayerMenu();
-}
-
-function backToMultiplayerMenu() { showScreen('multiplayerMenu'); }
-
-async function startMultiplayerGame() {
-    if (gameState.isHost) {
-        // 房主通知服务器开始游戏
-        try {
-            await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'start_game',
-                    room_code: gameState.roomCode
-                })
-            });
-        } catch (error) {
-            console.error('Error starting game:', error);
-            alert('开始游戏失败，请重试');
-            return;
+            console.error('❌ 离开房间错误:', error);
         }
     }
     
+    resetGameState();
+}
+
+function backToMultiplayerMenu() {
+    leaveRoom();
+    showScreen('multiplayerMenu');
+}
+
+async function startMultiplayerGame() {
+    if (!gameState.isHost) {
+        await showAlertDialog('提示', '只有房主可以开始游戏！');
+        return;
+    }
+    
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'start_game',
+                room_code: gameState.roomCode
+            })
+        });
+        
+        const data = await response.json();
+        if (data.error) {
+            await showAlertDialog('错误', `开始游戏失败: ${data.error}`);
+        }
+    } catch (error) {
+        await showAlertDialog('错误', '开始游戏失败，请重试');
+    }
+}
+
+async function initMultiplayerGame(players) {
     gameState.gameStarted = true;
-    gameState.players = [{
-        name: gameState.playerName,
-        color: '#FF5252',
+    gameState.currentPlayerIndex = 0;
+    
+    gameState.players = players.map(p => ({
+        name: p.player_name,
+        color: p.player_color,
         money: 1500,
         position: 0,
         isBot: false,
-        properties: []
-    }];
+        properties: [],
+        inJail: false,
+        jailTurns: 0
+    }));
+    
     gameState.board = [...BOARD_CONFIG];
-    gameState.properties = BOARD_CONFIG.map(p => ({ ...p, owner: null, houses: 0 }));
+    gameState.properties = BOARD_CONFIG.map(p => ({
+        ...p,
+        owner: null,
+        houses: 0,
+        isMortgaged: false
+    }));
+    
     showScreen('gameScreen');
     initGameScreen();
+    startMultiplayerGameSync();
 }
 
 // ========================================
@@ -474,25 +544,32 @@ function initGameScreen() {
     updatePlayerStats();
     updateCurrentPlayer();
     updateBoardTokens();
+    updateGameControls();
+    
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    if (currentPlayer && currentPlayer.isBot && gameState.mode === 'single') {
+        setTimeout(() => rollDice(), 1500);
+    }
 }
 
 function generateBoard() {
     const board = document.getElementById('gameBoard');
-    // ✅ 修复：生成正确的 HTML 结构
     let html = '';
+    
     for (let i = 0; i < 11; i++) {
         for (let j = 0; j < 11; j++) {
             let index = -1;
-            if (i === 0) index = j;
-            else if (i === 10 && j < 10) index = 19 - j;
-            else if (j === 10 && i > 0 && i < 10) index = 20 + i;
-            else if (j === 0 && i > 0 && i < 10) index = 10 + i;
+            
+            if (i === 0 && j <= 10) index = 20 + j;
+            else if (i === 10 && j <= 10) index = 10 - j;
+            else if (j === 0 && i > 0 && i < 10) index = 20 - i;
+            else if (j === 10 && i > 0 && i < 10) index = 30 + i;
             
             if (index >= 0 && index < 40) {
                 const space = gameState.board[index];
                 let className = 'board-cell';
                 if ([0, 10, 20, 30].includes(index)) className += ' corner';
-                if (space.color) className += ' property';
+                if (space.type === 'property') className += ' property';
                 
                 html += `
                     <div class="${className}" data-index="${index}" onclick="showPropertyDetails(${index})" 
@@ -501,6 +578,8 @@ function generateBoard() {
                         ${space.price ? `<div class="cell-price">$${space.price}</div>` : ''}
                     </div>
                 `;
+            } else {
+                html += '<div class="board-center"></div>';
             }
         }
     }
@@ -525,7 +604,8 @@ function updateBoardTokens() {
 function updatePlayerStats() {
     const stats = document.getElementById('playerStats');
     stats.innerHTML = gameState.players.map((player, i) => `
-        <div class="player-stat-card ${gameState.currentPlayerIndex === i ? 'active' : ''}" style="border-left-color: ${player.color}">
+        <div class="player-stat-card ${gameState.currentPlayerIndex === i ? 'active' : ''}" 
+             style="border-left-color: ${player.color}">
             <div class="player-stat-header">
                 <span class="player-stat-name">${player.name}</span>
                 <div class="player-stat-avatar" style="background: ${player.color}">${player.name[0]}</div>
@@ -543,6 +623,14 @@ function updateCurrentPlayer() {
 }
 
 async function rollDice() {
+    if (gameState.mode === 'multiplayer') {
+        const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+        if (currentPlayer.name !== gameState.playerName) {
+            await showAlertDialog('提示', '现在不是你的回合！');
+            return;
+        }
+    }
+    
     const rollBtn = document.getElementById('rollDiceBtn');
     rollBtn.disabled = true;
     document.getElementById('diceDisplay').style.display = 'flex';
@@ -563,11 +651,26 @@ async function rollDice() {
     dice1.textContent = roll1;
     dice2.textContent = roll2;
     
-    showEventMessage(`${gameState.players[gameState.currentPlayerIndex].name} 掷出: ${roll1} + ${roll2} = ${total}`);
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    showEventMessage(`${currentPlayer.name} 掷出: ${roll1} + ${roll2} = ${total}`);
     await sleep(1500);
     
     await movePlayer(total);
+    
+    // 立即更新视图
+    updatePlayerStats();
+    updateBoardTokens();
+    
+    // 处理落地事件
     await handleLanding();
+    
+    // 再次更新确保状态同步
+    updatePlayerStats();
+    updateBoardTokens();
+    
+    if (gameState.mode === 'multiplayer') {
+        await syncGameStateToServer();
+    }
     
     document.getElementById('endTurnBtn').style.display = 'inline-block';
     rollBtn.style.display = 'none';
@@ -580,12 +683,14 @@ async function movePlayer(steps) {
     for (let i = 1; i <= steps; i++) {
         player.position = (player.position + 1) % 40;
         updateBoardTokens();
-        await sleep(200);
+        await sleep(300);
     }
     
-    if (player.position < startPos) {
+    const endPos = player.position;
+    if (endPos < startPos || (startPos + steps >= 40)) {
         player.money += 200;
         showEventMessage('通过起点！获得 $200');
+        await sleep(1000);
     }
 }
 
@@ -629,22 +734,37 @@ async function handlePropertyLanding(property) {
     const player = gameState.players[gameState.currentPlayerIndex];
     
     if (!property.owner) {
-        if (confirm(`"${property.name}" 无主，价格 $${property.price}\n是否购买？`)) {
+        if (gameState.mode === 'multiplayer' && player.name !== gameState.playerName) {
+            return;
+        }
+        
+        const confirmed = await showConfirmDialog(
+            '购买地产',
+            `"${property.name}" 无主\n价格: $${property.price}\n\n是否购买？`
+        );
+        
+        if (confirmed) {
             if (player.money >= property.price) {
                 player.money -= property.price;
                 property.owner = player.name;
                 player.properties.push(player.position);
                 showEventMessage(`${player.name} 购买了 "${property.name}"！`);
+                
+                if (gameState.mode === 'multiplayer') {
+                    await updatePropertyOnServer(player.position, player.name);
+                }
             } else {
-                showEventMessage('资金不足，无法购买');
+                await showAlertDialog('资金不足', '你的资金不足，无法购买此地产！');
             }
         }
     } else if (property.owner !== player.name) {
         const owner = gameState.players.find(p => p.name === property.owner);
-        const rent = property.rent[0];
-        player.money -= rent;
-        owner.money += rent;
-        showEventMessage(`${player.name} 支付 $${rent} 租金给 ${owner.name}`);
+        if (owner) {
+            const rent = property.rent[0];
+            player.money -= rent;
+            owner.money += rent;
+            showEventMessage(`${player.name} 支付 $${rent} 租金给 ${owner.name}`);
+        }
     }
 }
 
@@ -654,7 +774,7 @@ async function handleChanceCard() {
     const player = gameState.players[gameState.currentPlayerIndex];
     
     if (card.money) player.money += card.money;
-    if (card.move) player.position = (player.position + card.move + 40) % 40;
+    if (card.move !== undefined) player.position = card.move;
     updateBoardTokens();
 }
 
@@ -664,7 +784,7 @@ async function handleCommunityCard() {
     const player = gameState.players[gameState.currentPlayerIndex];
     
     if (card.money) player.money += card.money;
-    if (card.move) player.position = (player.position + card.move + 40) % 40;
+    if (card.move !== undefined) player.position = card.move;
     updateBoardTokens();
 }
 
@@ -677,6 +797,11 @@ async function endTurn() {
     gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
     updateCurrentPlayer();
     updatePlayerStats();
+    updateGameControls();
+    
+    if (gameState.mode === 'multiplayer') {
+        await syncGameStateToServer();
+    }
     
     const activePlayers = gameState.players.filter(p => p.money > 0);
     if (activePlayers.length <= 1) {
@@ -746,11 +871,15 @@ function toggleGameMenu() {
 }
 
 function showGameRules() {
-    alert(`🎲 大富翁游戏规则\n\n1. 初始资金: $1500\n2. 轮流掷骰子前进 2-12 格\n3. 通过起点获得 $200\n4. 可以购买无主地产\n5. 停在他人地产支付租金\n6. 破产出局，最后一位获胜\n\n按空格键快速掷骰子，ESC打开菜单\n祝您游戏愉快！🎉`);
+    showAlertDialog(
+        '🎲 游戏规则',
+        `1. 初始资金: $1500\n2. 轮流掷骰子前进 2-12 格\n3. 通过起点获得 $200\n4. 可以购买无主地产\n5. 停在他人地产支付租金\n6. 破产出局，最后一位获胜\n\n按空格键快速掷骰子，ESC打开菜单\n祝您游戏愉快！🎉`
+    );
 }
 
-function quitToMainMenu() {
-    if (confirm('确定退出游戏？')) {
+async function quitToMainMenu() {
+    const confirmed = await showConfirmDialog('退出游戏', '确定要退出当前游戏吗？');
+    if (confirmed) {
         resetGameState();
         toggleGameMenu();
         backToMainMenu();
@@ -763,7 +892,8 @@ function quitToMainMenu() {
 function resetGameState() {
     gameState = {
         mode: 'single', roomCode: null, playerName: null, players: [],
-        currentPlayerIndex: 0, board: [], properties: [], isHost: false, gameStarted: false
+        currentPlayerIndex: 0, board: [], properties: [], isHost: false, 
+        gameStarted: false, updateInterval: null
     };
 }
 
@@ -776,6 +906,93 @@ function showEventMessage(message) {
     eventMsg.textContent = message;
     eventMsg.style.display = 'block';
     setTimeout(() => eventMsg.style.display = 'none', 3000);
+}
+
+// ========================================
+// 🎨 自定义对话框系统
+// ========================================
+function showAlertDialog(title, message) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-dialog-overlay';
+        
+        const dialog = document.createElement('div');
+        dialog.className = 'custom-dialog';
+        dialog.innerHTML = `
+            <div class="custom-dialog-header">
+                <h3>${title}</h3>
+            </div>
+            <div class="custom-dialog-body">
+                <p>${message.replace(/\n/g, '<br>')}</p>
+            </div>
+            <div class="custom-dialog-footer">
+                <button class="custom-dialog-btn primary" id="alertOkBtn">确定</button>
+            </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.classList.add('active'), 10);
+        
+        const okBtn = dialog.querySelector('#alertOkBtn');
+        okBtn.onclick = () => {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                document.body.removeChild(overlay);
+                resolve(true);
+            }, 300);
+        };
+        okBtn.focus();
+    });
+}
+
+function showConfirmDialog(title, message) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-dialog-overlay';
+        
+        const dialog = document.createElement('div');
+        dialog.className = 'custom-dialog';
+        dialog.innerHTML = `
+            <div class="custom-dialog-header">
+                <h3>${title}</h3>
+            </div>
+            <div class="custom-dialog-body">
+                <p>${message.replace(/\n/g, '<br>')}</p>
+            </div>
+            <div class="custom-dialog-footer">
+                <button class="custom-dialog-btn secondary" id="confirmCancelBtn">取消</button>
+                <button class="custom-dialog-btn primary" id="confirmOkBtn">确定</button>
+            </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.classList.add('active'), 10);
+        
+        const okBtn = dialog.querySelector('#confirmOkBtn');
+        const cancelBtn = dialog.querySelector('#confirmCancelBtn');
+        
+        const closeDialog = (result) => {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                document.body.removeChild(overlay);
+                resolve(result);
+            }, 300);
+        };
+        
+        okBtn.onclick = () => closeDialog(true);
+        cancelBtn.onclick = () => closeDialog(false);
+        
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeDialog(false);
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+        okBtn.focus();
+    });
 }
 
 // ========================================
@@ -797,5 +1014,158 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+// ========================================
+// 🆕 多人游戏同步功能
+// ========================================
+function startMultiplayerGameSync() {
+    if (gameState.mode !== 'multiplayer' || !gameState.roomCode) return;
+    
+    if (gameState.updateInterval) clearInterval(gameState.updateInterval);
+    gameState.updateInterval = setInterval(async () => {
+        if (currentScreen === 'gameScreen' && gameState.gameStarted) {
+            await syncGameStateFromServer();
+        }
+    }, 3000);
+}
+
+async function syncGameStateToServer() {
+    if (gameState.mode !== 'multiplayer' || !gameState.roomCode) return;
+    
+    try {
+        const gameData = {
+            currentPlayerIndex: gameState.currentPlayerIndex,
+            players: gameState.players,
+            properties: gameState.properties
+        };
+        
+        await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update_game_state',
+                room_code: gameState.roomCode,
+                game_data: gameData
+            })
+        });
+        
+        for (const player of gameState.players) {
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'update_player',
+                    room_code: gameState.roomCode,
+                    player_name: player.name,
+                    position: player.position,
+                    money: player.money,
+                    is_active: player.money > 0
+                })
+            });
+        }
+    } catch (error) {
+        console.error('❌ 同步游戏状态失败:', error);
+    }
+}
+
+async function syncGameStateFromServer() {
+    if (gameState.mode !== 'multiplayer' || !gameState.roomCode) return;
+    
+    try {
+        const response = await fetch(`${API_URL}?action=get_game_state&room_code=${gameState.roomCode}`);
+        const data = await response.json();
+        
+        if (data.error || !data.state) return;
+        
+        const serverState = data.state.game_data;
+        if (!serverState || typeof serverState !== 'object') return;
+        
+        let needsUpdate = false;
+        
+        if (Number.isInteger(serverState.currentPlayerIndex) && serverState.currentPlayerIndex >= 0) {
+            if (serverState.currentPlayerIndex !== gameState.currentPlayerIndex) {
+                gameState.currentPlayerIndex = serverState.currentPlayerIndex;
+                needsUpdate = true;
+            }
+        }
+        
+        if (Array.isArray(serverState.players) && serverState.players.length === gameState.players.length) {
+            for (let i = 0; i < gameState.players.length; i++) {
+                const sp = serverState.players[i];
+                if (!sp) continue;
+                const lp = gameState.players[i];
+                const shouldUpdate =
+                    (typeof sp.position === 'number' && sp.position !== lp.position) ||
+                    (typeof sp.money === 'number' && sp.money !== lp.money) ||
+                    (typeof sp.name === 'string' && sp.name !== lp.name);
+                if (shouldUpdate) {
+                    gameState.players[i] = { ...lp, ...sp };
+                    needsUpdate = true;
+                }
+            }
+        }
+        
+        if (Array.isArray(serverState.properties) && serverState.properties.length === gameState.properties.length) {
+            for (let i = 0; i < gameState.properties.length; i++) {
+                const sp = serverState.properties[i];
+                if (sp && sp.owner !== gameState.properties[i].owner) {
+                    gameState.properties[i] = { ...gameState.properties[i], ...sp };
+                    needsUpdate = true;
+                }
+            }
+        }
+        
+        if (needsUpdate) {
+            updateCurrentPlayer();
+            updatePlayerStats();
+            updateBoardTokens();
+            updateGameControls();
+        }
+    } catch (error) {
+        console.error('❌ 同步失败:', error);
+    }
+}
+
+async function updatePropertyOnServer(position, ownerName) {
+    if (gameState.mode !== 'multiplayer' || !gameState.roomCode) return;
+    
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update_property',
+                room_code: gameState.roomCode,
+                position: position,
+                owner: ownerName,
+                house_count: 0
+            })
+        });
+    } catch (error) {
+        console.error('❌ 更新地产失败:', error);
+    }
+}
+
+function updateGameControls() {
+    const rollBtn = document.getElementById('rollDiceBtn');
+    const endTurnBtn = document.getElementById('endTurnBtn');
+    
+    if (gameState.mode === 'multiplayer') {
+        const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+        const isMyTurn = currentPlayer && currentPlayer.name === gameState.playerName;
+        
+        if (isMyTurn) {
+            rollBtn.style.opacity = '1';
+            rollBtn.style.cursor = 'pointer';
+            endTurnBtn.style.opacity = '1';
+            endTurnBtn.style.cursor = 'pointer';
+        } else {
+            rollBtn.style.opacity = '0.5';
+            rollBtn.style.cursor = 'not-allowed';
+            endTurnBtn.style.opacity = '0.5';
+            endTurnBtn.style.cursor = 'not-allowed';
+        }
+    }
+}
 
 console.log('🎲 大富翁游戏脚本加载完成！');
