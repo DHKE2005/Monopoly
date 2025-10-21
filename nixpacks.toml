@@ -1,8 +1,0 @@
-[phases.setup]
-nixPkgs = ['php81', 'php81Packages.pdo', 'php81Packages.pdo_mysql', 'apache2']
-
-[phases.build]
-cmds = ['composer install --no-dev --optimize-autoloader']
-
-[start]
-cmd = 'vendor/bin/heroku-php-apache2'
