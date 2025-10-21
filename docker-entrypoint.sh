@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
-# 获取端口（Railway 提供，默认 8080）
-PORT=${PORT:-8080}
+# 确保 PORT 环境变量已设置
+if [ -z "$PORT" ]; then
+    echo "WARNING: PORT environment variable not set, using default 8080"
+    export PORT=8080
+fi
 
 echo "=========================================="
 echo "Starting Apache Configuration"
