@@ -90,10 +90,26 @@ function createRoom($conn) {
     global $requestData;
     $data = $requestData;
     
-    $roomName = $data['room_name'] ?? '';
-    $hostName = $data['host_name'] ?? '';
-    $isLan = $data['is_lan'] ?? false;
-    $maxPlayers = $data['max_players'] ?? 4;
+    $roomName = trim($data['room_name'] ?? '');
+    $hostName = trim($data['host_name'] ?? '');
+    $maxPlayers = isset($data['max_players']) ? (int)$data['max_players'] : 4;
+    if ($maxPlayers < 2) $maxPlayers = 2;
+    if ($maxPlayers > 8) $maxPlayers = 8;
+
+    // 将 is_lan 严格转换为 0/1，避免 MySQL 严格模式 1366 错误
+    $isLanRaw = $data['is_lan'] ?? false;
+    $isLanBool = filter_var($isLanRaw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    if ($isLanBool === null) {
+        if (is_numeric($isLanRaw)) {
+            $isLanBool = ((int)$isLanRaw) === 1;
+        } else if (is_string($isLanRaw)) {
+            $lower = strtolower($isLanRaw);
+            $isLanBool = in_array($lower, ['true', 'yes', 'on'], true);
+        } else {
+            $isLanBool = false;
+        }
+    }
+    $isLan = $isLanBool ? 1 : 0;
 
     if (empty($roomName) || empty($hostName)) {
         jsonResponse(['error' => 'Room name and host name are required'], 400);
@@ -115,7 +131,7 @@ function createRoom($conn) {
             INSERT INTO rooms (room_name, room_code, host_name, max_players, is_lan) 
             VALUES (?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$roomName, $roomCode, $hostName, $maxPlayers, $isLan]);
+        $stmt->execute([$roomName, $roomCode, $hostName, (int)$maxPlayers, (int)$isLan]);
         
         // 添加房主为玩家
         $stmt = $conn->prepare("
