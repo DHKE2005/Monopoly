@@ -1,1 +1,1 @@
-web: apache2-foreground
+web: /usr/local/bin/start-apache.sh

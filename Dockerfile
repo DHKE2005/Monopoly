@@ -23,18 +23,18 @@ RUN composer install --no-dev --optimize-autoloader
 # 启用 Apache rewrite 模块
 RUN a2enmod rewrite
 
-# 创建启动脚本
+# 创建启动脚本来处理动态端口
 RUN printf '#!/bin/bash\n\
 set -e\n\
 PORT=${PORT:-8080}\n\
-echo "Starting Apache on port $PORT"\n\
+echo "Configuring Apache to listen on port $PORT"\n\
 echo "Listen $PORT" > /etc/apache2/ports.conf\n\
-sed -i "s/<VirtualHost \*:80>/<VirtualHost *:$PORT>/g" /etc/apache2/sites-available/000-default.conf\n\
+sed -i "s/<VirtualHost \\*:80>/<VirtualHost *:$PORT>/g" /etc/apache2/sites-available/000-default.conf\n\
+echo "Starting Apache..."\n\
 exec apache2-foreground\n' > /usr/local/bin/start-apache.sh
 
 RUN chmod +x /usr/local/bin/start-apache.sh
 
-# 暴露端口
 EXPOSE 8080
 
 # 使用启动脚本
