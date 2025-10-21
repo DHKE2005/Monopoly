@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大富翁 - Monopoly Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 主菜单 -->
+    <div id="mainMenu" class="screen active">
+        <div class="menu-container">
+            <h1 class="game-title">
+                <span class="title-icon">🎲</span>
+                大富翁
+                <span class="title-icon">🏠</span>
+            </h1>
+            <div class="menu-buttons">
+                <button class="menu-btn primary-btn" onclick="showSinglePlayerSetup()">
+                    <span class="btn-icon">🎮</span>
+                    单人游戏
+                </button>
+                <button class="menu-btn secondary-btn" onclick="showMultiplayerMenu()">
+                    <span class="btn-icon">👥</span>
+                    多人游戏
+                </button>
+                <button class="menu-btn danger-btn" onclick="exitGame()">
+                    <span class="btn-icon">🚪</span>
+                    退出游戏
+                </button>
+            </div>
+            <div class="credits">
+                <p>Version 1.0 | Made with ❤️</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 单人游戏设置 -->
+    <div id="singlePlayerSetup" class="screen">
+        <div class="setup-container">
+            <h2>单人游戏设置</h2>
+            <div class="setup-content">
+                <div class="form-group">
+                    <label for="playerName">您的名字</label>
+                    <input type="text" id="playerName" placeholder="输入您的名字" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="botCount">机器人数量 (1-3)</label>
+                    <div class="bot-selector">
+                        <button class="bot-btn" data-count="1">1 个</button>
+                        <button class="bot-btn active" data-count="2">2 个</button>
+                        <button class="bot-btn" data-count="3">3 个</button>
+                    </div>
+                    <input type="hidden" id="botCount" value="2">
+                </div>
+                <div class="button-group">
+                    <button class="btn secondary-btn" onclick="backToMainMenu()">返回</button>
+                    <button class="btn primary-btn" onclick="startSinglePlayer()">开始游戏</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 多人游戏菜单 -->
+    <div id="multiplayerMenu" class="screen">
+        <div class="setup-container">
+            <h2>多人游戏</h2>
+            <div class="setup-content">
+                <div class="form-group">
+                    <label for="multiPlayerName">您的名字</label>
+                    <input type="text" id="multiPlayerName" placeholder="输入您的名字" maxlength="20">
+                </div>
+                <div class="multiplayer-options">
+                    <button class="option-btn" onclick="showCreateRoom()">
+                        <span class="option-icon">➕</span>
+                        <span class="option-text">创建房间</span>
+                    </button>
+                    <button class="option-btn" onclick="showJoinRoom()">
+                        <span class="option-icon">🔗</span>
+                        <span class="option-text">加入房间</span>
+                    </button>
+                </div>
+                <div class="button-group">
+                    <button class="btn secondary-btn" onclick="backToMainMenu()">返回</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建房间 -->
+    <div id="createRoomScreen" class="screen">
+        <div class="setup-container">
+            <h2>创建房间</h2>
+            <div class="setup-content">
+                <div class="form-group">
+                    <label for="roomName">房间名称</label>
+                    <input type="text" id="roomName" placeholder="输入房间名称" maxlength="30">
+                </div>
+                <div class="form-group">
+                    <label for="maxPlayers">最大玩家数</label>
+                    <div class="player-selector">
+                        <button class="player-btn" data-count="2">2 人</button>
+                        <button class="player-btn" data-count="3">3 人</button>
+                        <button class="player-btn active" data-count="4">4 人</button>
+                    </div>
+                    <input type="hidden" id="maxPlayers" value="4">
+                </div>
+                <div class="form-group">
+                    <label>房间类型</label>
+                    <div class="room-type-selector">
+                        <button class="type-btn active" data-lan="true">
+                            <span class="type-icon">🏠</span>
+                            局域网房间
+                        </button>
+                        <button class="type-btn" data-lan="false">
+                            <span class="type-icon">🌐</span>
+                            Railway 在线房间
+                        </button>
+                    </div>
+                    <input type="hidden" id="isLanRoom" value="true">
+                </div>
+                <div class="button-group">
+                    <button class="btn secondary-btn" onclick="backToMultiplayerMenu()">返回</button>
+                    <button class="btn primary-btn" onclick="createRoom()">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加入房间 -->
+    <div id="joinRoomScreen" class="screen">
+        <div class="setup-container">
+            <h2>加入房间</h2>
+            <div class="setup-content">
+                <div class="room-type-tabs">
+                    <button class="tab-btn active" onclick="switchRoomTab('lan')">局域网房间</button>
+                    <button class="tab-btn" onclick="switchRoomTab('online')">Railway 房间</button>
+                </div>
+                <div id="roomList" class="room-list">
+                    <div class="loading">正在加载房间列表...</div>
+                </div>
+                <div class="button-group">
+                    <button class="btn secondary-btn" onclick="backToMultiplayerMenu()">返回</button>
+                    <button class="btn primary-btn" onclick="refreshRoomList()">刷新列表</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 等待室 -->
+    <div id="waitingRoom" class="screen">
+        <div class="waiting-container">
+            <h2>等待其他玩家加入</h2>
+            <div class="room-info">
+                <div class="info-item">
+                    <span class="info-label">房间代码:</span>
+                    <span id="displayRoomCode" class="info-value room-code">------</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">房间名称:</span>
+                    <span id="displayRoomName" class="info-value">------</span>
+                </div>
+            </div>
+            <div id="playerList" class="player-list">
+                <!-- 玩家列表动态生成 -->
+            </div>
+            <div class="button-group">
+                <button class="btn danger-btn" onclick="leaveRoom()">离开房间</button>
+                <button id="startGameBtn" class="btn primary-btn" onclick="startMultiplayerGame()" style="display: none;">
+                    开始游戏
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 游戏界面 -->
+    <div id="gameScreen" class="screen">
+        <div class="game-container">
+            <!-- 游戏信息栏 -->
+            <div class="game-info-bar">
+                <div class="current-player-info">
+                    <span>当前玩家: </span>
+                    <span id="currentPlayerName" class="player-name-display">---</span>
+                </div>
+                <div class="game-controls">
+                    <button id="rollDiceBtn" class="btn primary-btn" onclick="rollDice()">
+                        <span class="btn-icon">🎲</span>
+                        掷骰子
+                    </button>
+                    <button id="endTurnBtn" class="btn secondary-btn" onclick="endTurn()" style="display: none;">
+                        结束回合
+                    </button>
+                </div>
+                <div class="game-menu-btn">
+                    <button class="btn icon-btn" onclick="toggleGameMenu()">☰</button>
+                </div>
+            </div>
+
+            <!-- 游戏棋盘 -->
+            <div id="gameBoard" class="game-board">
+                <!-- 棋盘动态生成 -->
+            </div>
+
+            <!-- 玩家状态栏 -->
+            <div id="playerStats" class="player-stats">
+                <!-- 玩家状态动态生成 -->
+            </div>
+
+            <!-- 骰子显示 -->
+            <div id="diceDisplay" class="dice-display" style="display: none;">
+                <div class="dice" id="dice1"></div>
+                <div class="dice" id="dice2"></div>
+            </div>
+
+            <!-- 事件消息 -->
+            <div id="eventMessage" class="event-message"></div>
+        </div>
+    </div>
+
+    <!-- 游戏菜单弹窗 -->
+    <div id="gameMenuModal" class="modal">
+        <div class="modal-content">
+            <h3>游戏菜单</h3>
+            <button class="menu-modal-btn" onclick="toggleGameMenu()">继续游戏</button>
+            <button class="menu-modal-btn" onclick="showGameRules()">游戏规则</button>
+            <button class="menu-modal-btn danger" onclick="quitToMainMenu()">退出到主菜单</button>
+        </div>
+    </div>
+
+    <!-- 属性卡片弹窗 -->
+    <div id="propertyModal" class="modal">
+        <div class="modal-content property-modal">
+            <span class="close" onclick="closePropertyModal()">&times;</span>
+            <div id="propertyDetails"></div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
