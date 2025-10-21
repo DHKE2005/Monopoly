@@ -1,5 +1,6 @@
 FROM php:8.1-apache
 
+# 安装必要的扩展
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     unzip \
@@ -7,25 +8,34 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# 复制 Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# 设置工作目录
 WORKDIR /var/www/html
 
+# 复制项目文件
 COPY . .
 
+# 安装 PHP 依赖
 RUN composer install --no-dev --optimize-autoloader
 
-# 启用必要的模块
+# 启用 Apache rewrite 模块
 RUN a2enmod rewrite
 
-# 复制自定义配置
-COPY railway-apache.conf /etc/apache2/sites-available/000-default.conf
-
 # 创建启动脚本
-RUN echo '#!/bin/bash\n\
-echo "Listen ${PORT:-8080}" > /etc/apache2/ports.conf\n\
-exec apache2-foreground' > /start.sh && chmod +x /start.sh
+RUN printf '#!/bin/bash\n\
+set -e\n\
+PORT=${PORT:-8080}\n\
+echo "Starting Apache on port $PORT"\n\
+echo "Listen $PORT" > /etc/apache2/ports.conf\n\
+sed -i "s/<VirtualHost \*:80>/<VirtualHost *:$PORT>/g" /etc/apache2/sites-available/000-default.conf\n\
+exec apache2-foreground\n' > /usr/local/bin/start-apache.sh
 
-EXPOSE ${PORT}
+RUN chmod +x /usr/local/bin/start-apache.sh
 
-CMD ["/start.sh"]
+# 暴露端口
+EXPOSE 8080
+
+# 使用启动脚本
+CMD ["/usr/local/bin/start-apache.sh"]
